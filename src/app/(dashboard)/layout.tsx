@@ -4,7 +4,6 @@ import React from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopNavbar } from "@/components/layout/top-navbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { useAuth } from "@/hooks/use-auth";
 import { RunTrackingProvider } from "@/components/run/run-tracking-provider";
 import { AchievementToast } from "@/components/dashboard/achievement-toast";
 import { CommandPaletteProvider } from "@/contexts/command-palette-context";
@@ -15,8 +14,6 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Initialize auth state from Supabase session
-  useAuth();
 
   return (
     <CommandPaletteProvider>
