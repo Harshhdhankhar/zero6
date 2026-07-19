@@ -109,7 +109,7 @@ const STATIC_CLUBS: StaticClub[] = [
   { id: "c-4", name: "Hyderabad Trail Society", location: "KBR Park, Hyderabad" },
 ];
 
-export function LandingMap() {
+export function LandingMap({ isAuthenticated = false }: { isAuthenticated?: boolean }) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
@@ -358,6 +358,10 @@ export function LandingMap() {
     if (isMobile) setShowMobilePanel(true);
   }, [handleFlyTo, isMobile]);
 
+  const gatedHref = useCallback((href: string) => (
+    isAuthenticated ? href : `/login?redirect=${encodeURIComponent(href)}`
+  ), [isAuthenticated]);
+
   return (
     <div className="relative w-full rounded-2xl border border-border/30 overflow-hidden" style={{ minHeight: isMobile ? "450px" : "520px" }}>
       <div ref={mapContainerRef} className="absolute inset-0" />
@@ -388,7 +392,7 @@ export function LandingMap() {
               <Search className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs font-semibold text-muted-foreground">Routes</span>
             </div>
-            <Link href="/map" className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+            <Link href={gatedHref("/map")} prefetch={false} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
               Open map <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -454,7 +458,7 @@ export function LandingMap() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {STATIC_CLUBS.slice(0, 4).map((c) => (
-                <Link key={c.id} href="/communities"
+                <Link key={c.id} href={gatedHref("/communities")} prefetch={false}
                   className="text-[9px] px-2 py-1 rounded-full bg-card/50 border border-border/30 text-muted-foreground/70 hover:text-white hover:border-primary/30 transition-all"
                 >
                   {c.name}
@@ -487,6 +491,7 @@ export function LandingMap() {
                   )}
                 </div>
                 <button onClick={() => { setSelectedRoute(null); setShowMobilePanel(false); }}
+                  aria-label="Close route details"
                   className="w-6 h-6 rounded-full bg-card/60 flex items-center justify-center hover:bg-card transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-3 h-3 text-muted-foreground" />
@@ -520,7 +525,7 @@ export function LandingMap() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Link href="/map"
+                <Link href={gatedHref("/map")} prefetch={false}
                   className="flex items-center gap-1 text-[11px] font-semibold px-3.5 py-1.5 rounded-full bg-primary text-primary-foreground hover:shadow-[0_0_20px_var(--primary-glow)] transition-all"
                 >
                   View Route <ArrowRight className="w-3 h-3" />
@@ -547,6 +552,8 @@ export function LandingMap() {
       {isMobile && !selectedRoute && (
         <div className="absolute bottom-3 left-3 right-3 z-10">
           <button onClick={() => setShowMobilePanel(!showMobilePanel)}
+            aria-label="Explore routes"
+            aria-expanded={showMobilePanel}
             className="w-full bg-background/95 backdrop-blur-2xl border border-border/30 rounded-xl p-3.5 shadow-2xl flex items-center justify-between cursor-pointer"
           >
             <div className="flex items-center gap-2">
@@ -574,6 +581,7 @@ export function LandingMap() {
                 <span className="text-sm font-bold">Routes</span>
               </div>
               <button onClick={() => setShowMobilePanel(false)}
+                aria-label="Close routes panel"
                 className="w-7 h-7 rounded-full bg-card/60 flex items-center justify-center cursor-pointer"
               >
                 <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -627,7 +635,7 @@ export function LandingMap() {
 
       {/* Top-right link */}
       <div className="absolute top-3 right-3 z-10 hidden sm:block">
-        <Link href="/map"
+        <Link href={gatedHref("/map")} prefetch={false}
           className="inline-flex items-center gap-1.5 text-[10px] font-medium px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-xl border border-border/30 text-muted-foreground/70 hover:text-white hover:border-primary/30 transition-all shadow-lg"
         >
           <Navigation className="w-3 h-3" /> Full Map

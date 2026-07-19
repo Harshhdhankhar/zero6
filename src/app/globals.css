@@ -360,21 +360,6 @@ body {
   margin-bottom: var(--space-4);
 }
 
-.marquee-track {
-  display: flex;
-  white-space: nowrap;
-  animation: marquee 40s linear infinite;
-  will-change: transform;
-}
-.marquee-track:hover {
-  animation-play-state: paused;
-}
-
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .text-gradient {
@@ -393,6 +378,26 @@ body {
 
 /* ─── PREMIUM LANDING STYLES ─── */
 
+.z6-landing {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 12% 24%, hsl(var(--primary) / 0.025), transparent 28rem),
+    hsl(var(--background));
+}
+
+.z6-landing section[id] { scroll-margin-top: 5rem; }
+
+.z6-landing a,
+.z6-landing button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.z6-landing a:focus-visible,
+.z6-landing button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 4px;
+}
+
 .z6-grain {
   position: fixed;
   inset: 0;
@@ -403,19 +408,17 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-repeat: repeat;
   background-size: 256px 256px;
-  animation: grain 0.5s steps(3) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .z6-grain { display: none; }
-  *, *::before, *::after {
+  .z6-landing *, .z6-landing *::before, .z6-landing *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
 }
-
-@keyframes grain { 0%, 100% { transform: translate(0, 0); } 10% { transform: translate(-5%, -5%); } 20% { transform: translate(-10%, 5%); } 30% { transform: translate(5%, -10%); } 40% { transform: translate(-5%, 15%); } 50% { transform: translate(-10%, 5%); } 60% { transform: translate(15%, 0); } 70% { transform: translate(0, 10%); } 80% { transform: translate(-15%, 0); } 90% { transform: translate(10%, 5%); } }
 
 /* ─── Magnetic button ─── */
 .z6-btn-squish {
@@ -440,7 +443,7 @@ body {
 }
 
 /* ─── Section spacing ─── */
-.z6-section { padding: clamp(2.5rem, 5vw, 4rem) 0; }
+.z6-section { padding: clamp(4.5rem, 8vw, 7.5rem) 0; }
 
 /* ─── Dark section ─── */
 .z6-dark-section {
@@ -515,21 +518,20 @@ body {
   border-radius: 1.25rem;
   border: 1px solid hsl(var(--border) / 0.15);
   background: hsl(var(--card) / 0.25);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
-  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  transition: border-color 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .z6-scene:hover {
   border-color: hsl(var(--primary) / 0.18);
-  box-shadow: 0 0 60px hsl(var(--primary) / 0.05);
+  transform: translateY(-3px);
 }
 
 /* ─── Massive typographic mask ─── */
 .z6-text-mask {
   background-size: cover;
   background-position: center;
-  background-attachment: fixed;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -550,39 +552,11 @@ body {
 
 /* ─── Glass panel ─── */
 .z6-glass-panel {
-  background: hsl(var(--card) / 0.35);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid hsl(var(--border) / 0.18);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255,255,255,0.05);
-}
-
-/* ─── Horizontal fade edges ─── */
-.z6-fade-edges {
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
-}
-
-/* ─── Vertical fade ─── */
-.z6-fade-top-bottom {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
-}
-
-/* ─── Sticky story (community hub) ─── */
-.z6-sticky-story {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
-  gap: 4rem;
-}
-@media (max-width: 1024px) {
-  .z6-sticky-story { grid-template-columns: 1fr; gap: 2.5rem; }
-}
-.z6-sticky-panel {
-  position: sticky;
-  top: 7rem;
-  align-self: start;
+  background: hsl(var(--card) / 0.72);
+  backdrop-filter: blur(12px) saturate(130%);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  border: 1px solid hsl(var(--border) / 0.4);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 /* ─── Hero runner dot animation ─── */
@@ -610,6 +584,11 @@ body {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
+.z6-community-image {
+  filter: saturate(0.7) contrast(1.04) brightness(0.64);
+  transform: scale(1.015);
+  transition: filter 0.7s ease, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
 .z6-community-card::before {
   content: "";
   position: absolute;
@@ -623,13 +602,9 @@ body {
   transform: translateY(-5px);
   box-shadow: 0 24px 60px hsl(0 0% 0% / 0.45), 0 0 0 1px hsl(var(--primary) / 0.08);
 }
-.z6-community-card-body {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 2;
-  padding: 1.25rem;
+.z6-community-card:hover .z6-community-image {
+  filter: saturate(0.92) contrast(1.04) brightness(0.72);
+  transform: scale(1.055);
 }
 
 /* ─── Marquee ─── */
@@ -664,23 +639,9 @@ body {
 }
 .z6-ticker-item:hover::after { width: 100%; }
 
-/* ─── Panorama progress bar ─── */
-.z6-panorama-bar {
-  transform-origin: left center;
-  will-change: transform;
-}
-
-/* ─── Community card join button ─── */
-.z6-community-card-join {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  z-index: 3;
-  opacity: 0;
-  transform: translateY(-8px);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.z6-community-card:hover .z6-community-card-join {
-  opacity: 1;
-  transform: translateY(0);
+@media (max-width: 640px) {
+  .z6-section { padding: 4.25rem 0; }
+  .z6-manifesto-type { line-height: 1.12; }
+  .z6-community-card:hover { transform: none; }
+  .z6-community-card:hover .z6-community-image { transform: scale(1.015); }
 }

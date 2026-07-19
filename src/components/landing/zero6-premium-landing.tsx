@@ -17,8 +17,7 @@ import {
   Menu, X as XIcon, Users, Zap, QrCode, Bell,
   ArrowUpRight, ChevronLeft,
 } from "lucide-react";
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
 const LandingMapComponent = dynamic(
@@ -45,12 +44,12 @@ const MARQUEE_CITIES = [
 ];
 
 const COMMUNITIES = [
-  { id: "c1", name: "Delhi Run Collective",    city: "DELHI NCR", location: "Lodhi Garden",    pace: "5:30 /km", members: 340, grad: "from-orange-950/80 via-stone-950/90 to-stone-950", accent: "#FF5A1F" },
-  { id: "c2", name: "Marine Drive Runners",   city: "MUMBAI",    location: "Queen's Necklace", pace: "5:45 /km", members: 218, grad: "from-sky-950/80 via-stone-950/90 to-stone-950",    accent: "#0EA5E9" },
-  { id: "c3", name: "Cubbon Park Crew",        city: "BENGALURU", location: "Cubbon Park",      pace: "6:00 /km", members: 175, grad: "from-emerald-950/80 via-stone-950/90 to-stone-950", accent: "#10B981" },
-  { id: "c4", name: "Hyderabad Trail Society", city: "HYDERABAD", location: "KBR Park",         pace: "5:15 /km", members: 142, grad: "from-amber-950/80 via-stone-950/90 to-stone-950",  accent: "#F59E0B" },
-  { id: "c5", name: "Pune Pacemakers",         city: "PUNE",      location: "Koregaon Park",    pace: "5:50 /km", members: 196, grad: "from-violet-950/80 via-stone-950/90 to-stone-950", accent: "#8B5CF6" },
-  { id: "c6", name: "Chandigarh Runners",      city: "CHANDIGARH",location: "Sector 1",         pace: "5:20 /km", members: 88,  grad: "from-cyan-950/80 via-stone-950/90 to-stone-950",   accent: "#06B6D4" },
+  { id: "c1", name: "Delhi Run Collective",    city: "DELHI NCR", location: "Lodhi Garden",    pace: "5:30 /km", members: 340, image: "/image copy 2.png", position: "center",       grad: "from-orange-950/55 via-stone-950/50 to-stone-950", accent: "#FF5A1F" },
+  { id: "c2", name: "Marine Drive Runners",   city: "MUMBAI",    location: "Queen's Necklace", pace: "5:45 /km", members: 218, image: "/image copy.png",   position: "50% 42%",      grad: "from-sky-950/40 via-stone-950/55 to-stone-950",    accent: "#38BDF8" },
+  { id: "c3", name: "Cubbon Park Crew",        city: "BENGALURU", location: "Cubbon Park",      pace: "6:00 /km", members: 175, image: "/image.png",        position: "68% center",   grad: "from-emerald-950/40 via-stone-950/50 to-stone-950", accent: "#34D399" },
+  { id: "c4", name: "Hyderabad Trail Society", city: "HYDERABAD", location: "KBR Park",         pace: "5:15 /km", members: 142, image: "/image copy 2.png", position: "58% center",   grad: "from-amber-950/45 via-stone-950/50 to-stone-950",  accent: "#FBBF24" },
+  { id: "c5", name: "Pune Pacemakers",         city: "PUNE",      location: "Koregaon Park",    pace: "5:50 /km", members: 196, image: "/image copy.png",   position: "center",       grad: "from-violet-950/40 via-stone-950/55 to-stone-950", accent: "#A78BFA" },
+  { id: "c6", name: "Chandigarh Runners",      city: "CHANDIGARH",location: "Sector 1",         pace: "5:20 /km", members: 88,  image: "/image.png",        position: "38% center",   grad: "from-cyan-950/40 via-stone-950/50 to-stone-950",   accent: "#22D3EE" },
 ];
 
 const EVENTS = [
@@ -64,11 +63,12 @@ const NAV_LINKS = [
   { label: "Communities", href: "#communities" },
   { label: "Events",      href: "#events"      },
   { label: "Map",         href: "#map"         },
-  { label: "Explore",     href: "/login?redirect=%2Fcommunities" },
+  { label: "Explore",     href: "/communities" },
 ];
 
 const ease = [0.16, 1, 0.3, 1] as [number, number, number, number];
 const noAnim = { duration: 0 };
+const LandingAuthContext = createContext(false);
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -97,7 +97,7 @@ function WordReveal({
 function MagneticLink({
   href, children, className, reduce, style,
 }: { href: string; children: React.ReactNode; className?: string; reduce?: boolean; style?: React.CSSProperties }) {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const sx = useSpring(x, { stiffness: 280, damping: 18 });
@@ -112,20 +112,24 @@ function MagneticLink({
   const onLeave = () => { x.set(0); y.set(0); };
 
   return (
-    <motion.a ref={ref} href={href} className={className} style={{ x: sx, y: sy, ...style }}
-      onMouseMove={onMove} onMouseLeave={onLeave}>
-      {children}
-    </motion.a>
+    <motion.div ref={ref} style={{ x: sx, y: sy }} onMouseMove={onMove} onMouseLeave={onLeave}>
+      <Link href={href} className={className} style={style} prefetch={false}>
+        {children}
+      </Link>
+    </motion.div>
   );
 }
 
 function AuthLink({
   href, children, className, style, ...rest
-}: { href: string; children: React.ReactNode; className?: string; style?: React.CSSProperties; [key: string]: unknown }) {
-  const { isAuthenticated } = useAuth();
+}: Omit<React.ComponentProps<typeof Link>, "href"> & { href: string }) {
+  const isAuthenticated = useContext(LandingAuthContext);
+  const destination = href.startsWith("#") || isAuthenticated
+    ? href
+    : `/login?redirect=${encodeURIComponent(href)}`;
 
   return (
-    <Link href={isAuthenticated ? href : `/login?redirect=${encodeURIComponent(href)}`}
+    <Link href={destination}
       className={className} style={style} prefetch={false} {...rest}>
       {children}
     </Link>
@@ -136,6 +140,7 @@ function AuthLink({
 
 export default function Zero6PremiumLanding() {
   const reduce = useReducedMotion();
+  const { isAuthenticated } = useAuth();
   const [menuOpen, setMenuOpen]     = useState(false);
   const [navSolid, setNavSolid]     = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -145,6 +150,31 @@ export default function Zero6PremiumLanding() {
   const { scrollYProgress: heroScroll } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
   const heroY       = useTransform(heroScroll, [0, 1], [0, 180]);
   const heroOpacity = useTransform(heroScroll, [0, 0.7], [1, 0]);
+
+  // Organizer parallax
+  const organizerRef = useRef<HTMLElement>(null);
+  const organizerTextRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = organizerTextRef.current;
+    if (!el || reduce) return;
+    let raf: number;
+    const onScroll = () => {
+      raf = requestAnimationFrame(() => {
+        const rect = organizerRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const viewportH = window.innerHeight;
+        const progress = 1 - rect.top / (rect.height + viewportH);
+        const pct = progress * 50;
+        el.style.backgroundPosition = `center ${pct}%`;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [reduce]);
 
   // Communities native-scroll strip ref
   const commStripRef = useRef<HTMLDivElement>(null);
@@ -160,7 +190,8 @@ export default function Zero6PremiumLanding() {
     const fn = () => {
       setNavSolid(window.scrollY > 40);
       const docEl = document.documentElement;
-      setScrollProgress(Math.min(1, window.scrollY / (docEl.scrollHeight - docEl.clientHeight)));
+      const scrollable = Math.max(1, docEl.scrollHeight - docEl.clientHeight);
+      setScrollProgress(Math.min(1, window.scrollY / scrollable));
     };
     window.addEventListener("scroll", fn, { passive: true });
     fn();
@@ -170,16 +201,26 @@ export default function Zero6PremiumLanding() {
   // Lock body scroll when mobile menu open
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", closeOnEscape);
+    };
   }, [menuOpen]);
 
   const scrollToTop = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, []);
+    window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+  }, [reduce]);
+
+  const primaryHref = isAuthenticated ? "/dashboard" : "/signup";
 
   return (
-    <div className="min-h-screen bg-background text-white overflow-x-hidden selection:bg-primary/30">
+    <LandingAuthContext.Provider value={isAuthenticated}>
+    <div className="z6-landing min-h-screen bg-background text-white overflow-x-hidden selection:bg-primary/30">
       <div className="z6-grain" aria-hidden="true" />
 
       {/* ── NAV ── */}
@@ -202,35 +243,35 @@ export default function Zero6PremiumLanding() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6 text-[10.5px] font-bold tracking-[0.14em] uppercase">
+          <nav aria-label="Primary navigation" className="hidden md:flex items-center gap-6 text-[10.5px] font-bold tracking-[0.14em] uppercase">
             {NAV_LINKS.map((l) => (
-              <Link key={l.href} href={l.href}
+              <AuthLink key={l.href} href={l.href}
                 className="relative text-white/40 hover:text-white/90 transition-colors duration-250 group py-1">
                 {l.label}
                 <span className="absolute bottom-0 left-0 h-px w-0 bg-primary/70 group-hover:w-full transition-all duration-300 ease-out" />
-              </Link>
+              </AuthLink>
             ))}
           </nav>
 
           {/* Desktop actions */}
           <div className="hidden md:flex items-center gap-1.5">
-            <Link href="/login"
+            <Link href={isAuthenticated ? "/dashboard" : "/login"}
               className="text-[10.5px] font-bold text-white/38 hover:text-white/80 transition-colors duration-250 px-4 py-2 tracking-[0.12em] uppercase">
-              Login
+              {isAuthenticated ? "Dashboard" : "Login"}
             </Link>
-            <MagneticLink href="/signup" reduce={!!reduce}
+            <MagneticLink href={primaryHref} reduce={!!reduce}
               className="relative overflow-hidden rounded-full px-5 py-2.5 text-[10.5px] font-black bg-primary text-white flex items-center gap-1.5 tracking-[0.12em] uppercase transition-all duration-300 group">
               {/* Sweep shimmer */}
               <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-500 ease-out" />
               <span className="relative z-10 flex items-center gap-1.5">
-                Start Running <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform duration-200" />
+                {isAuthenticated ? "Open ZERO6" : "Start Running"} <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform duration-200" />
               </span>
             </MagneticLink>
           </div>
 
           {/* Mobile hamburger */}
-          <button className="md:hidden w-10 h-10 flex items-center justify-center"
-            onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
+          <button className="md:hidden w-11 h-11 flex items-center justify-center rounded-full hover:bg-white/[0.05] transition-colors"
+            onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu" aria-expanded={menuOpen} aria-controls="mobile-navigation">
             <AnimatePresence mode="wait">
               {menuOpen
                 ? <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}><XIcon className="w-5 h-5" /></motion.span>
@@ -249,27 +290,28 @@ export default function Zero6PremiumLanding() {
             animate={{ opacity: 1, clipPath: "inset(0 0 0% 0)" }}
             exit={{ opacity: 0, clipPath: "inset(0 0 100% 0)" }}
             transition={{ duration: 0.4, ease }}
+            id="mobile-navigation"
             className="fixed inset-0 z-40 bg-background/98 backdrop-blur-3xl pt-20 flex flex-col"
           >
-            <nav className="flex flex-col px-6">
+            <nav aria-label="Mobile navigation" className="flex flex-col px-6">
               {NAV_LINKS.map((l, i) => (
                 <motion.div key={l.href}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.08 + i * 0.06, ...(reduce ? noAnim : {}) }}>
-                  <Link href={l.href} onClick={() => setMenuOpen(false)}
+                  <AuthLink href={l.href} onClick={() => setMenuOpen(false)}
                     className="flex items-center justify-between py-5 border-b border-white/[0.06] hover:text-primary transition-colors group">
                     <span className="flex items-center gap-5">
                       <span className="text-[10px] text-white/20 font-mono w-5">0{i + 1}</span>
                       <span className="text-2xl font-black tracking-[-0.04em]">{l.label}</span>
                     </span>
                     <ArrowUpRight className="w-5 h-5 text-white/15 group-hover:text-primary transition-colors" />
-                  </Link>
+                  </AuthLink>
                 </motion.div>
               ))}
               <div className="flex flex-col gap-3 mt-10">
-                <Link href="/login" onClick={() => setMenuOpen(false)} className="text-center py-4 text-sm font-bold text-white/50 border border-white/10 rounded-2xl hover:border-white/25 transition-colors tracking-widest uppercase">Login</Link>
-                <Link href="/signup" onClick={() => setMenuOpen(false)} className="text-center py-4 text-sm font-black bg-primary text-white rounded-2xl hover:shadow-[0_0_40px_hsl(18_100%_60%/0.4)] transition-all tracking-widest uppercase">Start Running →</Link>
+                <Link href={isAuthenticated ? "/dashboard" : "/login"} onClick={() => setMenuOpen(false)} className="text-center py-4 text-sm font-bold text-white/50 border border-white/10 rounded-2xl hover:border-white/25 transition-colors tracking-widest uppercase">{isAuthenticated ? "Dashboard" : "Login"}</Link>
+                <Link href={primaryHref} onClick={() => setMenuOpen(false)} className="text-center py-4 text-sm font-black bg-primary text-white rounded-2xl hover:shadow-[0_0_40px_hsl(18_100%_60%/0.4)] transition-all tracking-widest uppercase">{isAuthenticated ? "Open ZERO6" : "Start Running"} →</Link>
               </div>
             </nav>
             <div className="px-6 mt-auto pb-10">
@@ -424,7 +466,7 @@ export default function Zero6PremiumLanding() {
             className="flex flex-col sm:flex-row items-start gap-3">
 
             {/* Primary CTA */}
-            <MagneticLink href="/signup" reduce={!!reduce}
+            <MagneticLink href={primaryHref} reduce={!!reduce}
               className="relative overflow-hidden rounded-full px-8 py-[13px] text-[11.5px] font-black bg-primary text-white flex items-center gap-2 tracking-[0.14em] uppercase transition-all duration-300 group shadow-[0_0_0_1px_hsl(18_100%_60%/0.3)]">
               {/* Light-sweep shimmer on hover */}
               <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 ease-out" />
@@ -432,7 +474,7 @@ export default function Zero6PremiumLanding() {
               <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                 style={{ boxShadow: "inset 0 0 30px hsl(18 100% 60% / 0.25)" }} />
               <span className="relative z-10 flex items-center gap-2">
-                Join ZERO6
+                {isAuthenticated ? "Open ZERO6" : "Join ZERO6"}
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" />
               </span>
             </MagneticLink>
@@ -484,7 +526,7 @@ export default function Zero6PremiumLanding() {
       </section>
 
       {/* ── MANIFESTO ── */}
-      <section className="relative flex flex-col justify-center overflow-hidden py-10 lg:py-14">
+      <section className="relative flex flex-col justify-center overflow-hidden py-16 sm:py-20 lg:py-24">
         <div className="z6-noise absolute inset-0" aria-hidden="true" />
         <div className="absolute top-0 inset-x-0 h-[55%] bg-[radial-gradient(ellipse_65%_50%_at_50%_0%,hsl(18_100%_60%/0.055)_0%,transparent_100%)] pointer-events-none" />
 
@@ -519,8 +561,8 @@ export default function Zero6PremiumLanding() {
           {/* Editorial headline — per-line reveal, no per-word clipping */}
           <div className="z6-manifesto-type mb-5">
             {([
-              { text: "Running alone",    cls: "text-white/30",  delay: 0.05 },
-              { text: "is the old way.",  cls: "text-white/30",  delay: 0.18 },
+              { text: "Running alone",    cls: "text-white/38",  delay: 0.05 },
+              { text: "is the old way.",  cls: "text-white/38",  delay: 0.18 },
               { text: "Find the others",  cls: "text-white",     delay: 0.38 },
               { text: "who show up.",     cls: "text-primary",   delay: 0.52 },
             ] as { text: string; cls: string; delay: number }[]).map((line, i) => (
@@ -550,7 +592,7 @@ export default function Zero6PremiumLanding() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.65, delay: 0.1 + i * 0.12, ease, ...(reduce ? noAnim : {}) }}
                 className="text-[13px] sm:text-[13.5px] leading-[1.8] font-medium"
-                style={{ color: "rgba(255,248,235,0.30)" }}>
+                style={{ color: "rgba(255,248,235,0.52)" }}>
                 {p}
               </motion.p>
             ))}
@@ -587,7 +629,7 @@ export default function Zero6PremiumLanding() {
                     </span>
                   </div>
                   <p className="text-[11px] leading-[1.6] font-medium sm:pl-[1.55rem]"
-                    style={{ color: "rgba(255,248,235,0.22)" }}>
+                    style={{ color: "rgba(255,248,235,0.42)" }}>
                     {item.body}
                   </p>
                 </motion.div>
@@ -602,14 +644,14 @@ export default function Zero6PremiumLanding() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.45, ease }}
             className="mt-6 flex flex-wrap items-center gap-7">
-            <Link href="/signup"
+            <Link href={primaryHref}
               className="group flex items-center gap-2 text-[11.5px] font-black text-primary hover:gap-3 transition-all duration-300 tracking-[0.15em] uppercase">
-              Find your crew <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              {isAuthenticated ? "Open your dashboard" : "Find your crew"} <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link href="/communities"
-              className="text-[10.5px] font-bold text-white/22 hover:text-white/50 transition-colors duration-300 tracking-[0.15em] uppercase">
+            <AuthLink href="/communities"
+              className="text-[10.5px] font-bold text-white/42 hover:text-white/75 transition-colors duration-300 tracking-[0.15em] uppercase">
               Browse communities →
-            </Link>
+            </AuthLink>
           </motion.div>
 
         </div>
@@ -650,7 +692,7 @@ export default function Zero6PremiumLanding() {
                 </button>
                 <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
                   <AuthLink href="/communities"
-                    className="flex items-center gap-1.5 text-[11px] font-black text-white/25 hover:text-primary transition-colors group tracking-[0.15em] uppercase">
+                    className="flex items-center gap-1.5 text-[11px] font-black text-white/45 hover:text-primary transition-colors group tracking-[0.15em] uppercase">
                     All communities <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </AuthLink>
                 </motion.div>
@@ -679,12 +721,20 @@ export default function Zero6PremiumLanding() {
                 style={{
                   scrollSnapAlign: "start",
                   flexShrink: 0,
-                  width: "clamp(240px, 28vw, 360px)",
-                  height: "clamp(360px, 40vw, 500px)",
+                  width: "clamp(270px, 78vw, 360px)",
+                  height: "clamp(390px, 105vw, 500px)",
                   marginTop: i % 2 === 1 ? "1.5rem" : "0",
                 }}
               >
-                <AuthLink href="/communities" className="z6-community-card block h-full group/c relative overflow-hidden">
+                <AuthLink href="/communities" className="z6-community-card block h-full group/c">
+                  <Image
+                    src={c.image}
+                    alt={`${c.name} runners`}
+                    fill
+                    sizes="(max-width: 640px) 78vw, (max-width: 1200px) 34vw, 360px"
+                    className="z6-community-image object-cover"
+                    style={{ objectPosition: c.position }}
+                  />
                   <div className={`absolute inset-0 bg-gradient-to-b ${c.grad} transition-opacity duration-700 group-hover/c:opacity-90`} />
                   {/* Accent top border */}
                   <div className="absolute top-0 inset-x-0 h-px opacity-50"
@@ -708,7 +758,7 @@ export default function Zero6PremiumLanding() {
                       {c.city}
                     </div>
                     <div className="text-[16px] font-black text-white mb-3 leading-tight">{c.name}</div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-white/35 mb-4">
+                    <div className="flex items-center gap-1.5 text-[11px] text-white/60 mb-4">
                       <MapPin className="w-3 h-3" />{c.location}
                     </div>
                     <div className="flex items-center gap-2">
@@ -724,7 +774,7 @@ export default function Zero6PremiumLanding() {
           {/* Mobile: see all link */}
           <div className="sm:hidden flex justify-center mt-8 px-6">
             <AuthLink href="/communities"
-              className="flex items-center gap-1.5 text-[11px] font-black text-white/25 hover:text-primary transition-colors group tracking-[0.15em] uppercase">
+              className="flex items-center gap-1.5 text-[11px] font-black text-white/45 hover:text-primary transition-colors group tracking-[0.15em] uppercase">
               All communities <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </AuthLink>
           </div>
@@ -750,7 +800,7 @@ export default function Zero6PremiumLanding() {
               </h2>
             </div>
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
-              <AuthLink href="/map" className="hidden sm:flex items-center gap-1.5 text-[11px] font-black text-white/25 hover:text-primary transition-colors group tracking-[0.15em] uppercase shrink-0">
+              <AuthLink href="/map" className="hidden sm:flex items-center gap-1.5 text-[11px] font-black text-white/45 hover:text-primary transition-colors group tracking-[0.15em] uppercase shrink-0">
                 Open full map <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </AuthLink>
             </motion.div>
@@ -779,7 +829,7 @@ export default function Zero6PremiumLanding() {
             </div>
 
             <div className="relative h-[480px] sm:h-[560px] lg:h-[630px]">
-              <LandingMapComponent />
+              <LandingMapComponent isAuthenticated={isAuthenticated} />
               <div className="absolute inset-0 shadow-[inset_0_0_90px_rgba(0,0,0,0.75)] pointer-events-none" />
               <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-background/70 to-transparent pointer-events-none" />
             </div>
@@ -805,7 +855,7 @@ export default function Zero6PremiumLanding() {
               </h2>
             </div>
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
-              <AuthLink href="/events" className="hidden sm:flex items-center gap-1.5 text-[11px] font-black text-white/25 hover:text-primary transition-colors group tracking-[0.15em] uppercase shrink-0">
+              <AuthLink href="/events" className="hidden sm:flex items-center gap-1.5 text-[11px] font-black text-white/45 hover:text-primary transition-colors group tracking-[0.15em] uppercase shrink-0">
                 All events <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </AuthLink>
             </motion.div>
@@ -820,28 +870,28 @@ export default function Zero6PremiumLanding() {
               transition={{ duration: 0.5, delay: i * 0.08, ease, ...(reduce ? noAnim : {}) }}
               className="z6-ticker-item group/ev">
               <AuthLink href="/events"
-                className="flex items-center gap-3 sm:gap-6 py-5 sm:py-6 rounded-xl hover:bg-white/[0.025] transition-all duration-300 relative overflow-hidden">
+                className="flex items-center gap-2.5 sm:gap-6 py-5 sm:py-6 rounded-xl hover:bg-white/[0.025] transition-all duration-300 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.07] to-transparent -translate-x-full group-hover/ev:translate-x-0 transition-transform duration-500 ease-out pointer-events-none" />
 
                 <div className="text-center w-12 sm:w-16 shrink-0 relative z-10">
                   <div className="text-[clamp(1.75rem,3.5vw,2.5rem)] font-black text-primary tabular-nums leading-none">{ev.date}</div>
-                  <div className="text-[8px] tracking-[0.3em] text-white/22 uppercase mt-0.5 font-black">{ev.month}</div>
+                  <div className="text-[8px] tracking-[0.3em] text-white/45 uppercase mt-0.5 font-black">{ev.month}</div>
                 </div>
 
                 <div className="z6-line-accent h-12 shrink-0 relative z-10" />
 
                 <div className="flex-1 min-w-0 relative z-10">
-                  <div className="text-[9px] font-black tracking-[0.25em] text-white/22 uppercase mb-1">{ev.type}</div>
-                  <div className="text-[16px] sm:text-[18px] font-black truncate group-hover/ev:text-primary transition-colors duration-300">{ev.title}</div>
-                  <div className="flex items-center gap-4 mt-1 text-[11px] text-white/28">
-                    <span className="flex items-center gap-1.5"><MapPin className="w-3 h-3" />{ev.location}</span>
+                  <div className="text-[9px] font-black tracking-[0.25em] text-white/45 uppercase mb-1">{ev.type}</div>
+                  <div className="text-[15px] sm:text-[18px] font-black leading-tight group-hover/ev:text-primary transition-colors duration-300">{ev.title}</div>
+                  <div className="flex items-center gap-4 mt-1 text-[10px] sm:text-[11px] text-white/50 min-w-0">
+                    <span className="flex items-center gap-1.5 min-w-0"><MapPin className="w-3 h-3 shrink-0" /><span className="truncate">{ev.location}</span></span>
                     <span className="hidden sm:flex items-center gap-1.5"><Clock className="w-3 h-3" />{ev.time}</span>
                   </div>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-3 sm:gap-4 relative z-10">
                   <span className="text-[14px] sm:text-[18px] font-black font-mono text-primary">{ev.dist}</span>
-                  <div className="flex items-center gap-1.5 text-[9px] font-black px-3 py-1.5 rounded-full border border-emerald-500/25 text-emerald-400 bg-emerald-500/[0.06] tracking-widest uppercase">
+                  <div className="hidden sm:flex items-center gap-1.5 text-[9px] font-black px-3 py-1.5 rounded-full border border-emerald-500/25 text-emerald-400 bg-emerald-500/[0.06] tracking-widest uppercase">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />Open
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/12 group-hover/ev:text-primary group-hover/ev:translate-x-1.5 transition-all duration-300 hidden sm:block" />
@@ -873,7 +923,7 @@ export default function Zero6PremiumLanding() {
 
               <motion.p initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
                 transition={{ duration: 0.7, delay: 0.35, ease, ...(reduce ? noAnim : {}) }}
-                className="text-[15px] text-white/38 leading-relaxed max-w-md mb-10 font-medium">
+                className="text-[15px] text-white/58 leading-relaxed max-w-md mb-10 font-medium">
                 Every crew has a home. Channels for announcements, routes shared before every run,
                 and a leaderboard that actually matters.
               </motion.p>
@@ -892,7 +942,7 @@ export default function Zero6PremiumLanding() {
                 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.7, ease, ...(reduce ? noAnim : {}) }}
-                className="z6-scene bg-background/45 backdrop-blur-2xl border border-white/10 relative overflow-hidden rounded-[20px]">
+                className="z6-scene relative">
                 <div className="absolute -top-8 -right-8 w-32 h-32 bg-primary/20 rounded-full blur-[60px] pointer-events-none" />
                 <div className="flex border-b border-white/[0.06] overflow-hidden">
                   <div className="w-36 sm:w-44 border-r border-white/[0.06] p-3 sm:p-3.5 space-y-2 sm:space-y-3 shrink-0">
@@ -954,7 +1004,7 @@ export default function Zero6PremiumLanding() {
                 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.7, delay: 0.1, ease, ...(reduce ? noAnim : {}) }}
-                className="z6-scene p-5 sm:p-6 bg-background/45 backdrop-blur-2xl border border-white/10 relative overflow-hidden rounded-[20px]">
+                className="z6-scene p-5 sm:p-6 relative">
                 <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none" />
                 <div className="flex items-start gap-4 relative z-10">
                   <div className="w-16 h-16 rounded-2xl border border-primary/20 bg-primary/[0.06] flex items-center justify-center shrink-0">
@@ -985,7 +1035,7 @@ export default function Zero6PremiumLanding() {
                 initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.7, delay: 0.2, ease, ...(reduce ? noAnim : {}) }}
-                className="z6-scene p-5 sm:p-6 bg-background/45 backdrop-blur-2xl border border-white/10 relative overflow-hidden rounded-[20px]">
+                className="z6-scene p-5 sm:p-6 relative">
                 <div className="absolute top-1/2 -right-8 w-32 h-32 bg-primary/[0.08] rounded-full blur-[50px] pointer-events-none" />
                 <div className="flex items-center justify-between mb-5 relative z-10">
                   <div>
@@ -1023,9 +1073,9 @@ export default function Zero6PremiumLanding() {
       </section>
 
       {/* ── ORGANIZER ── */}
-      <section className="relative min-h-[60vh] sm:min-h-[70vh] flex items-center justify-center overflow-hidden">
+      <section ref={organizerRef} className="relative min-h-[60vh] sm:min-h-[70vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center opacity-[0.22] mix-blend-luminosity"
-          style={{ backgroundImage: "url('/image%20copy.png')", backgroundAttachment: "fixed" }} />
+          style={{ backgroundImage: "url('/image%20copy.png')" }} />
         <div className="absolute inset-0 bg-background/90" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vh] bg-[radial-gradient(ellipse,hsl(18_100%_60%/0.06)_0%,transparent_70%)] pointer-events-none" />
 
@@ -1039,16 +1089,16 @@ export default function Zero6PremiumLanding() {
               <span className="w-10 h-px bg-primary/50" />
             </div>
 
-            <div className="z6-text-mask font-black leading-[0.78] tracking-[-0.07em] mb-8 sm:mb-10 select-none"
+            <motion.div ref={organizerTextRef} className="z6-text-mask font-black leading-[0.78] tracking-[-0.07em] mb-8 sm:mb-10 select-none"
               style={{
                 fontSize: "clamp(5.5rem, 22vw, 20rem)",
                 backgroundImage: "url('/image%20copy.png')",
                 backgroundSize: "cover",
-                backgroundPosition: "center",
+                willChange: "background-position",
               }}
               aria-label="Lead">
               LEAD
-            </div>
+            </motion.div>
 
             <p className="text-[16px] sm:text-[18px] text-white/48 max-w-xl mx-auto leading-relaxed mb-12 font-medium">
               Every running club in India started with one person who showed up
@@ -1056,7 +1106,7 @@ export default function Zero6PremiumLanding() {
               Be that person.
             </p>
 
-            <MagneticLink href="/signup" reduce={!!reduce}
+            <MagneticLink href={isAuthenticated ? "/communities?create=true" : "/signup"} reduce={!!reduce}
               className="group relative inline-flex items-center justify-center gap-2.5 rounded-full px-12 py-5 text-[12px] font-black bg-primary text-white hover:shadow-[0_0_80px_hsl(18_100%_60%/0.55)] transition-all duration-[400ms] overflow-hidden tracking-[0.2em] uppercase">
               <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out rounded-full" />
               <span className="relative z-10 flex items-center gap-2.5">
@@ -1109,11 +1159,11 @@ export default function Zero6PremiumLanding() {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.5, ease, ...(reduce ? noAnim : {}) }}
             className="flex flex-col sm:flex-row items-start gap-4">
-            <MagneticLink href="/signup" reduce={!!reduce}
+            <MagneticLink href={primaryHref} reduce={!!reduce}
               className="group relative overflow-hidden rounded-full px-8 sm:px-10 py-4 text-[12px] font-black bg-primary text-white hover:shadow-[0_0_80px_hsl(18_100%_60%/0.5)] transition-all duration-[400ms] flex items-center gap-2 tracking-[0.15em] uppercase z6-btn-squish">
               <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
               <span className="relative z-10 flex items-center gap-2">
-                Join ZERO6 — Free <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                {isAuthenticated ? "Open your dashboard" : "Join ZERO6 — Free"} <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
               </span>
             </MagneticLink>
             <AuthLink href="/communities"
@@ -1132,24 +1182,24 @@ export default function Zero6PremiumLanding() {
           <div className="grid grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 mb-10 sm:mb-12">
             <div className="col-span-2 lg:col-span-5">
               <Link href="/" className="flex items-center gap-2.5 mb-4 group">
-                <div className="relative w-6 h-6 group-hover:scale-105 transition-transform"><Image src="/logo.png" alt="ZERO6" fill className="object-contain" sizes="24px" /></div>
+                <div className="relative w-32 h-12 group-hover:scale-[1.02] transition-transform"><Image src="/logo.png" alt="ZERO6" fill className="object-contain object-left" sizes="128px" /></div>
               </Link>
-              <p className="text-[12px] text-white/25 leading-relaxed max-w-xs mb-5 font-medium">
+              <p className="text-[12px] text-white/50 leading-relaxed max-w-xs mb-5 font-medium">
                 India&apos;s running community platform. Find your crew, discover routes, and make every city a running city.
               </p>
-              <div className="text-[8px] text-white/10 tracking-[0.35em] uppercase font-bold">Designed for India · Built to Move</div>
+              <div className="text-[8px] text-white/30 tracking-[0.35em] uppercase font-bold">Designed for India · Built to Move</div>
             </div>
 
             {[
-              { label: "Product",   links: [{ href: "#communities", text: "Communities" }, { href: "#events", text: "Events" }, { href: "#map", text: "Running Map" }, { href: "/login?redirect=%2Fcommunities", text: "Explore" }] },
-              { label: "Community", links: [{ href: "/signup", text: "Create Account" }, { href: "/login?redirect=%2Fcommunities", text: "Browse Crews" }, { href: "/login", text: "Member Login" }] },
-              { label: "Connect",   links: [{ href: "/signup", text: "Get Started" }] },
+              { label: "Product",   links: [{ href: "#communities", text: "Communities" }, { href: "#events", text: "Events" }, { href: "#map", text: "Running Map" }, { href: isAuthenticated ? "/communities" : "/login?redirect=%2Fcommunities", text: "Explore" }] },
+              { label: "Community", links: [{ href: primaryHref, text: isAuthenticated ? "Dashboard" : "Create Account" }, { href: isAuthenticated ? "/communities" : "/login?redirect=%2Fcommunities", text: "Browse Crews" }, { href: isAuthenticated ? "/dashboard" : "/login", text: isAuthenticated ? "Member Home" : "Member Login" }] },
+              { label: "Connect",   links: [{ href: primaryHref, text: isAuthenticated ? "Open ZERO6" : "Get Started" }] },
             ].map((col, i) => (
               <div key={col.label} className={`col-span-1 lg:col-span-2 ${i === 0 ? "lg:col-start-7" : ""}`}>
-                <div className="text-[8px] font-black tracking-[0.3em] text-white/15 uppercase mb-5">{col.label}</div>
+                <div className="text-[8px] font-black tracking-[0.3em] text-white/35 uppercase mb-5">{col.label}</div>
                 <div className="space-y-2.5">
                   {col.links.map((l) => (
-                    <Link key={l.text} href={l.href} className="group/link block text-[12px] text-white/28 hover:text-white transition-colors duration-300 font-medium">
+                    <Link key={l.text} href={l.href} className="group/link block text-[12px] text-white/50 hover:text-white transition-colors duration-300 font-medium">
                       <span className="relative inline-block">
                         {l.text}
                         <span className="absolute -bottom-px left-0 h-px w-0 bg-primary/60 group-hover/link:w-full transition-all duration-300 ease-out" />
@@ -1158,8 +1208,8 @@ export default function Zero6PremiumLanding() {
                   ))}
                   {col.label === "Connect" && (
                     <>
-                      <span className="block text-[12px] text-white/10 font-medium flex items-center gap-2">Social <span className="text-[7px] px-1.5 py-0.5 rounded-full border border-white/08 text-white/18 tracking-widest uppercase bg-white/[0.03]">Soon</span></span>
-                      <span className="block text-[12px] text-white/10 font-medium flex items-center gap-2">Contact <span className="text-[7px] px-1.5 py-0.5 rounded-full border border-white/08 text-white/18 tracking-widest uppercase bg-white/[0.03]">In App</span></span>
+                      <span className="flex items-center gap-2 text-[12px] text-white/25 font-medium">Social <span className="text-[7px] px-1.5 py-0.5 rounded-full border border-white/10 text-white/30 tracking-widest uppercase bg-white/[0.03]">Soon</span></span>
+                      <span className="flex items-center gap-2 text-[12px] text-white/25 font-medium">Contact <span className="text-[7px] px-1.5 py-0.5 rounded-full border border-white/10 text-white/30 tracking-widest uppercase bg-white/[0.03]">In App</span></span>
                     </>
                   )}
                 </div>
@@ -1170,12 +1220,13 @@ export default function Zero6PremiumLanding() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-white/[0.04]">
             <span className="text-[10px] text-white/15 font-medium">© {new Date().getFullYear()} ZERO6</span>
             <span className="text-[8px] text-white/08 tracking-[0.4em] uppercase font-bold">India Running Network</span>
-            <button onClick={scrollToTop} className="text-[10px] text-white/20 hover:text-primary transition-colors cursor-pointer font-medium group">
+            <button onClick={scrollToTop} aria-label="Back to top" className="text-[10px] text-white/40 hover:text-primary transition-colors cursor-pointer font-medium group">
               Back to top <span className="inline-block group-hover:-translate-y-0.5 transition-transform duration-200">↑</span>
             </button>
           </div>
         </div>
       </footer>
     </div>
+    </LandingAuthContext.Provider>
   );
 }
