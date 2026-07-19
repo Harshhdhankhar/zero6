@@ -18,7 +18,6 @@ import {
   ArrowUpRight, ChevronLeft,
 } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
 
 const LandingMapComponent = dynamic(
   () => import("@/components/landing/landing-map").then((m) => ({ default: m.LandingMap })),
@@ -140,7 +139,7 @@ function AuthLink({
 
 export default function Zero6PremiumLanding() {
   const reduce = useReducedMotion();
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = false;
   const [menuOpen, setMenuOpen]     = useState(false);
   const [navSolid, setNavSolid]     = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
