@@ -17,7 +17,7 @@ import {
   Menu, X as XIcon, Users, Zap, QrCode, Bell,
   ArrowUpRight, ChevronLeft,
 } from "lucide-react";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 const LandingMapComponent = dynamic(
   () => import("@/components/landing/landing-map").then((m) => ({ default: m.LandingMap })),
@@ -41,6 +41,7 @@ const MARQUEE_CITIES = [
   "CHANDIGARH", "KOLKATA", "CHENNAI", "JAIPUR", "AHMEDABAD",
   "LUCKNOW", "GOA", "KOCHI", "BHOPAL", "SURAT",
 ];
+const MARQUEE_CITIES_DOUBLED = [...MARQUEE_CITIES, ...MARQUEE_CITIES];
 
 const COMMUNITIES = [
   { id: "c1", name: "Delhi Run Collective",    city: "DELHI NCR", location: "Lodhi Garden",    pace: "5:30 /km", members: 340, image: "/image copy 2.png", position: "center",       grad: "from-orange-950/55 via-stone-950/50 to-stone-950", accent: "#FF5A1F" },
@@ -184,13 +185,19 @@ export default function Zero6PremiumLanding() {
     commStripRef.current.scrollBy({ left: dir === "r" ? 380 : -380, behavior: "smooth" });
   }, []);
 
-  // Nav transparency + scroll progress
+  // Nav transparency + scroll progress (throttled via RAF)
   useEffect(() => {
+    let ticking = false;
     const fn = () => {
-      setNavSolid(window.scrollY > 40);
-      const docEl = document.documentElement;
-      const scrollable = Math.max(1, docEl.scrollHeight - docEl.clientHeight);
-      setScrollProgress(Math.min(1, window.scrollY / scrollable));
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        setNavSolid(window.scrollY > 40);
+        const docEl = document.documentElement;
+        const scrollable = Math.max(1, docEl.scrollHeight - docEl.clientHeight);
+        setScrollProgress(Math.min(1, window.scrollY / scrollable));
+        ticking = false;
+      });
     };
     window.addEventListener("scroll", fn, { passive: true });
     fn();
@@ -508,7 +515,7 @@ export default function Zero6PremiumLanding() {
         <div className="absolute bottom-0 inset-x-0 overflow-hidden py-3 border-t z-10"
           style={{ borderColor: "rgba(255,255,255,0.04)" }}>
           <div className="flex whitespace-nowrap marquee-track">
-            {[...MARQUEE_CITIES, ...MARQUEE_CITIES].map((city, i) => {
+            {MARQUEE_CITIES_DOUBLED.map((city, i) => {
               const isHighlight = city === "DELHI NCR" && i < MARQUEE_CITIES.length;
               return (
                 <span key={i}
@@ -526,7 +533,6 @@ export default function Zero6PremiumLanding() {
 
       {/* ── MANIFESTO ── */}
       <section className="relative flex flex-col justify-center overflow-hidden py-16 sm:py-20 lg:py-24">
-        <div className="z6-noise absolute inset-0" aria-hidden="true" />
         <div className="absolute top-0 inset-x-0 h-[55%] bg-[radial-gradient(ellipse_65%_50%_at_50%_0%,hsl(18_100%_60%/0.055)_0%,transparent_100%)] pointer-events-none" />
 
         {!reduce && (
@@ -659,7 +665,6 @@ export default function Zero6PremiumLanding() {
       {/* ── COMMUNITIES ── */}
       {/* Natural document-flow section — native CSS scroll, no height tricks */}
       <section id="communities" className="relative z6-section overflow-hidden">
-        <div className="z6-noise absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_50%,hsl(18_100%_60%/0.03)_0%,transparent_100%)] pointer-events-none" />
 
         <div className="relative z-10">
@@ -782,7 +787,6 @@ export default function Zero6PremiumLanding() {
 
       {/* ── MAP ── */}
       <section id="map" className="relative z6-section overflow-hidden">
-        <div className="z6-noise absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_50%,hsl(18_100%_60%/0.04)_0%,transparent_100%)] pointer-events-none" />
 
         <div className="max-w-[1380px] mx-auto px-6">
@@ -838,7 +842,6 @@ export default function Zero6PremiumLanding() {
 
       {/* ── EVENTS ── */}
       <section id="events" className="relative z6-section overflow-hidden">
-        <div className="z6-noise absolute inset-0" aria-hidden="true" />
 
         <div className="max-w-[1380px] mx-auto px-6">
           <div className="flex items-end justify-between gap-8 mb-14">
@@ -904,7 +907,6 @@ export default function Zero6PremiumLanding() {
 
       {/* ── COMMUNITY HUB ── */}
       <section className="relative z6-section z6-dark-section overflow-hidden">
-        <div className="z6-noise absolute inset-0" aria-hidden="true" />
 
         <div className="max-w-[1380px] mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
@@ -1176,7 +1178,6 @@ export default function Zero6PremiumLanding() {
       {/* ── FOOTER ── */}
       <footer className="relative border-t border-white/[0.05] bg-stone-950 overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent pointer-events-none" />
-        <div className="z6-noise absolute inset-0 opacity-40" aria-hidden="true" />
         <div className="max-w-[1380px] mx-auto px-6 py-10 sm:py-14 relative z-10">
           <div className="grid grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6 mb-10 sm:mb-12">
             <div className="col-span-2 lg:col-span-5">
